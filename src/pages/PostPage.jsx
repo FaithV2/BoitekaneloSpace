@@ -13,22 +13,62 @@ export default function PostPage() {
   const [loading, setLoading] = useState(false)
 
   const loadPost = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('posts')
-      .select('*, users(username, display_name)')
+      .select('id, content, anonymous, supporter_response, created_at')
       .eq('id', id)
       .single()
-    setPost(data)
+
+    if (error) {
+      setPost(null)
+      return
+    }
+
+    if (data.anonymous) {
+      setPost(data)
+      return
+    }
+
+    const { data: author, error: authorError } = await supabase
+      .from('posts')
+      .select('users(username, display_name, role)')
+      .eq('id', id)
+      .single()
+
+    setPost({ ...data, users: authorError ? null : author?.users })
   }
 
   const loadComments = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('comments')
-      .select('*, users(username, display_name)')
+      .select('id, post_id, parent_comment_id, content, anonymous, created_at')
       .eq('post_id', id)
       .order('created_at', { ascending: true })
 
-    setComments(data ?? [])
+    if (error) {
+      setComments([])
+      return
+    }
+
+    const commentRows = data ?? []
+    const publicCommentIds = commentRows.filter((comment) => !comment.anonymous).map((comment) => comment.id)
+    let authorByCommentId = {}
+
+    if (publicCommentIds.length > 0) {
+      const { data: authors, error: authorError } = await supabase
+        .from('comments')
+        .select('id, users(username, display_name, role)')
+        .in('id', publicCommentIds)
+
+      if (!authorError) {
+        authorByCommentId = Object.fromEntries((authors ?? []).map((author) => [author.id, author.users]))
+      }
+    }
+
+    setComments(commentRows.map((comment) => ({
+      ...comment,
+      users: authorByCommentId[comment.id] ?? null
+    })))
   }
 
   useEffect(() => {
@@ -58,65 +98,85 @@ export default function PostPage() {
     return comments
       .filter((comment) => comment.parent_comment_id === parentId)
       .map((comment) => (
-        <div key={comment.id} style={{ marginLeft: depth * 18, marginTop: 18, paddingLeft: 14, borderLeft: '2px solid rgba(16,42,67,0.1)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+        <div key={comment.id} className="post-comment" style={{ marginLeft: depth * 14 }}>
+          <div className="post-comment-header">
             <div>
               <strong>{comment.anonymous ? 'Anonymous' : comment.users?.display_name ?? comment.users?.username ?? 'Community member'}</strong>
-              <div className="small-text">{new Date(comment.created_at).toLocaleString()}</div>
+              {!comment.anonymous && ['therapist', 'supporter'].includes(comment.users?.role) && (
+                <span className={`post-community-role is-${comment.users.role}`}>
+                  {comment.users.role === 'therapist' ? '✓ Verified therapist' : '♡ Supporter'}
+                </span>
+              )}
+              <time dateTime={comment.created_at}>{new Date(comment.created_at).toLocaleString()}</time>
             </div>
           </div>
-          <p style={{ margin: '12px 0 0' }}>{comment.content}</p>
+          <p className="post-comment-text">{comment.content}</p>
           {renderThread(comment.id, depth + 1)}
         </div>
       ))
   }
 
   return (
-    <div className="grid-two">
-      <section className="card">
-        <Link to="/feed" className="nav-link" style={{ display: 'inline-block', marginBottom: 20 }}>
+    <div className="post-page">
+      <main className="post-main">
+        <Link to="/feed" className="post-back-link">
           ← Back to feed
         </Link>
 
         {post ? (
-          <>
-            <h1 className="section-title">{post.anonymous ? 'Anonymous post' : post.users?.display_name ?? 'Community member'}</h1>
-            <p className="small-text">{new Date(post.created_at).toLocaleString()}</p>
-            <div className="card" style={{ marginTop: 20 }}>
-              <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{post.content}</p>
+          <article className="post-detail-card">
+            <div className="post-detail-author">
+              <span className={`post-author-avatar${post.anonymous ? ' is-anonymous' : ''}`} aria-hidden="true">
+                {post.anonymous ? '· · ·' : (post.users?.display_name ?? post.users?.username ?? 'C').charAt(0).toUpperCase()}
+              </span>
+              <div>
+                <h1>{post.anonymous ? 'Anonymous' : post.users?.display_name ?? post.users?.username ?? 'Community member'}</h1>
+                  {!post.anonymous && ['therapist', 'supporter'].includes(post.users?.role) && (
+                    <span className={`post-community-role is-${post.users.role}`}>
+                      {post.users.role === 'therapist' ? '✓ Verified therapist' : '♡ Supporter'}
+                    </span>
+                  )}
+                  <time dateTime={post.created_at}>{new Date(post.created_at).toLocaleString()}</time>
+              </div>
             </div>
-          </>
+            <p className="post-detail-content">{post.content}</p>
+            {post.supporter_response && <span className="post-supporter-badge">♡ Supporter</span>}
+          </article>
         ) : (
-          <p className="small-text">Loading post…</p>
+          <div className="post-loading-card" role="status"><span className="app-loading-spinner" />Loading conversation…</div>
         )}
 
-        <section className="card" style={{ marginTop: 24 }}>
-          <h2 className="section-title">Leave a comment</h2>
+        <section className="post-comment-composer">
+          <div className="post-section-heading"><span className="post-section-icon" aria-hidden="true">✎</span><div><h2>Join the conversation</h2><p>A kind word can make a difference.</p></div></div>
           <form onSubmit={submitComment}>
             <div className="form-field">
-              <label htmlFor="comment">Comment</label>
-              <textarea id="comment" value={content} onChange={(e) => setContent(e.target.value)} rows={4} required />
+              <label htmlFor="comment">Your comment</label>
+              <textarea id="comment" value={content} onChange={(e) => setContent(e.target.value)} rows={4} required placeholder="Leave a thoughtful, supportive comment…" />
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="post-comment-controls">
+              <label className="post-anonymous-option">
                 <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
-                Comment anonymously
+                <span>Comment anonymously</span>
               </label>
-            </div>
-            <button type="submit" className="primary" disabled={loading}>
+              <button type="submit" className="post-comment-button" disabled={loading || !content.trim()}>
               {loading ? 'Posting comment…' : 'Post comment'}
-            </button>
+              </button>
+            </div>
           </form>
         </section>
-      </section>
 
-      <aside>
-        <section className="card">
-          <h2 className="section-title">Discussion</h2>
+      </main>
+
+      <aside className="post-discussion-aside">
+        <section className="post-discussion-card">
+          <div className="post-discussion-heading">
+            <div><span className="post-eyebrow">COMMUNITY VOICES</span><h2>Discussion</h2></div>
+            <span className="post-comment-count">{comments.length}</span>
+          </div>
           {comments.length === 0 ? (
-            <p className="small-text">No comments yet — be the first to offer support.</p>
+            <div className="post-empty-comments"><span aria-hidden="true">🌱</span><p>No comments yet. Be the first to offer support.</p></div>
           ) : (
-            <div>{renderThread()}</div>
+            <div className="post-comment-list">{renderThread()}</div>
           )}
         </section>
       </aside>

@@ -6,108 +6,150 @@ import { scanForHarmfulContent } from '../lib/safetyUtils'
 const defaultPrompt = 'How are you feeling today?'
 
 export default function CheckinPage() {
-  const { profile } = useAuth()
+  const { session } = useAuth()
   const [prompt, setPrompt] = useState(defaultPrompt)
   const [response, setResponse] = useState('')
   const [warning, setWarning] = useState(null)
+  const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setLoading(true)
     setWarning(null)
+    setError(null)
     setResponse('')
 
-    const { flag, warningMessage } = scanForHarmfulContent(prompt)
+    try {
+      if (!session?.user) {
+        setError('Please sign in again before sending a check-in.')
+        return
+      }
 
-    const edgeUrl = import.meta.env.VITE_SUPABASE_EDGE_URL
-    let aiText = ''
+      const { flag, warningMessage } = scanForHarmfulContent(prompt)
+      const { data, error: functionError } = await supabase.functions.invoke('ai-checkin', {
+        body: { message: prompt }
+      })
 
-    if (edgeUrl) {
-      try {
-        const res = await fetch(`${edgeUrl}/checkin`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, mood: profile?.recent_mood ?? 'reflective' })
-        })
-        const data = await res.json()
-        aiText = data?.ai_response ?? data?.response ?? 'Thank you for sharing.'
-        if (data?.safety_flag) {
-          setWarning(data.warning_message)
+      if (functionError) {
+        const errorResponse = functionError.context
+        let responseError = null
+
+        if (errorResponse instanceof Response) {
+          try {
+            const errorBody = await errorResponse.clone().json()
+            responseError = typeof errorBody?.error === 'string' ? errorBody.error : null
+          } catch {
+            responseError = null
+          }
         }
-      } catch (error) {
-        aiText = 'We could not connect to the AI service. If you have a local edge function, set VITE_SUPABASE_EDGE_URL.'
+
+        if (errorResponse?.status === 401) {
+          setError(responseError || 'Your session has expired. Please sign in again.')
+        } else if (errorResponse?.status === 503 || errorResponse?.status === 504) {
+          setError(responseError || 'The check-in service is busy or taking too long. Please try again shortly.')
+        } else {
+          setError(responseError || 'We could not connect to the check-in service. Please try again.')
+        }
+        return
       }
-    } else {
-      aiText = `I hear you. It can be helpful to pause, breathe, and name one small feeling. Try pressing into your feet, counting your breath, and gently reminding yourself that feeling is temporary. If you can, write down one thing that feels supportive in this moment.`
-    }
 
-    const { error } = await supabase.from('ai_checkins').insert([
-      {
-        user_id: profile?.id,
-        user_prompt: prompt,
-        ai_response: aiText,
-        safety_flag: flag,
-        warning_message: warningMessage,
-        created_at: new Date().toISOString()
+      if (typeof data?.reply !== 'string' || !data.reply.trim()) {
+        setError('We received an unexpected response. Please try again.')
+        return
       }
-    ])
 
-    if (error) {
-      setWarning('There was an error saving your check-in. Please try again later.')
+      const aiText = data.reply
+      const safetyFlag = flag || Boolean(data.safety_flag)
+      const safetyWarning = warningMessage || data.warning_message
+
+      if (safetyFlag && safetyWarning) {
+        setWarning(safetyWarning)
+      }
+
+      const { error: saveError } = await supabase.from('ai_checkins').insert([
+        {
+          user_id: session.user.id,
+          user_prompt: prompt,
+          ai_response: aiText,
+          safety_flag: safetyFlag,
+          warning_message: safetyWarning,
+          created_at: new Date().toISOString()
+        }
+      ])
+
+      if (saveError) {
+        setError('Your response is ready, but we could not save this check-in.')
+      }
+
+      setResponse(aiText)
+    } catch {
+      setError('We could not send your check-in right now. Please try again.')
+    } finally {
+      setLoading(false)
     }
-
-    if (flag) {
-      setWarning(warningMessage)
-    }
-
-    setResponse(aiText)
-    setLoading(false)
   }
 
   return (
-    <div className="grid-two">
-      <section className="card">
-        <h1 className="section-title">Daily check-in</h1>
-        <p className="small-text">Share what’s on your mind and receive calm, non-diagnostic reflection.</p>
+    <div className="checkin-page">
+      <header className="checkin-heading">
+        <span className="checkin-heading-icon" aria-hidden="true">✧</span>
+        <span className="checkin-eyebrow">A GENTLE PAUSE</span>
+        <h1>Daily check-in</h1>
+        <p>Share what’s on your mind and receive calm, non-diagnostic reflection.</p>
+      </header>
 
-        <form className="card" onSubmit={handleSubmit} style={{ marginTop: 24 }}>
-          <div className="form-field">
-            <label htmlFor="prompt">Your check-in</label>
-            <textarea
-              id="prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={5}
-              required
-            />
+      <div className="checkin-layout">
+        <section className="checkin-form-panel">
+          <div className="checkin-form-intro">
+            <h2>What would you like to share?</h2>
+            <p>There’s no right way to check in. Start wherever you are.</p>
           </div>
-
-          <button type="submit" className="primary" disabled={loading}>
-            {loading ? 'Checking in...' : 'Send check-in'}
-          </button>
-          {warning && <div className="alert" style={{ marginTop: 18 }}>{warning}</div>}
-          {response && (
-            <div className="banner" style={{ marginTop: 18 }}>
-              <strong>Supportive response</strong>
-              <p style={{ margin: '10px 0 0' }}>{response}</p>
+          <form onSubmit={handleSubmit}>
+            <div className="form-field">
+              <label htmlFor="prompt">Your check-in</label>
+              <textarea
+                id="prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                rows={6}
+                required
+              />
             </div>
-          )}
-        </form>
-      </section>
 
-      <aside>
-        <section className="card">
-          <h2 className="section-title">How the AI check-in works</h2>
-          <p className="small-text">This tool is designed to listen, reflect, and offer caring suggestions. It is not a diagnosis or therapy substitute.</p>
-          <ul style={{ margin: 0, paddingLeft: 18, color: '#334e68' }}>
-            <li>Reflect on feelings in simple words.</li>
-            <li>Receive calm encouragement.</li>
-            <li>Get grounding or journaling ideas.</li>
-            <li>See crisis messaging if needed.</li>
-          </ul>
+            <button type="submit" className="checkin-submit" disabled={loading}>
+              {loading && <span className="checkin-spinner" aria-hidden="true" />}
+              {loading ? 'Taking a moment…' : 'Send check-in'} {!loading && <span aria-hidden="true">→</span>}
+            </button>
+            {error && <div className="checkin-alert checkin-alert-error" role="alert">{error}</div>}
+            {warning && <div className="checkin-alert checkin-alert-warning" role="status">{warning}</div>}
+            {response && (
+              <div className="checkin-response">
+                <span className="checkin-response-icon" aria-hidden="true">♡</span>
+                <div>
+                  <strong>A supportive reflection</strong>
+                  <p>{response}</p>
+                </div>
+              </div>
+            )}
+          </form>
         </section>
-      </aside>
+
+        <aside className="checkin-aside">
+          <section className="checkin-info-card">
+            <span className="checkin-info-icon" aria-hidden="true">☼</span>
+            <span className="checkin-eyebrow">A LITTLE ABOUT THIS SPACE</span>
+            <h2>How check-ins work</h2>
+            <p>This tool is here to listen, reflect, and offer caring suggestions. It’s not a diagnosis or a substitute for professional care.</p>
+            <ul>
+              <li><span aria-hidden="true">✓</span> Reflect in your own words</li>
+              <li><span aria-hidden="true">✓</span> Receive gentle encouragement</li>
+              <li><span aria-hidden="true">✓</span> Find grounding ideas</li>
+            </ul>
+          </section>
+          <p className="checkin-privacy-note"><span aria-hidden="true">♡</span> Your check-in is personal and shared only with this service.</p>
+        </aside>
+      </div>
     </div>
   )
 }

@@ -4,6 +4,14 @@ import { useAuth } from '../hooks/useAuth'
 
 export default function ProfilePage() {
   const { profile } = useAuth()
+  const currentRole = profile?.role ?? 'user'
+  const roleLabel = currentRole === 'therapist'
+    ? 'Verified therapist'
+    : currentRole === 'supporter'
+      ? 'Community supporter'
+      : currentRole === 'admin'
+        ? 'Community admin'
+        : 'Community member'
   const [story, setStory] = useState('')
   const [application, setApplication] = useState(null)
   const [status, setStatus] = useState(null)
@@ -43,40 +51,65 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="grid-two">
-      <section className="card">
-        <h1 className="section-title">Your profile</h1>
-        <p className="small-text">Manage your role and share why you want to support the community.</p>
-
-        <div className="card" style={{ marginTop: 24 }}>
-          <p><strong>Email</strong></p>
-          <p className="small-text">{profile?.email ?? 'Not available'}</p>
-          <p style={{ marginTop: 16 }}><strong>Role</strong></p>
-          <p className="small-text">{profile?.role ?? 'user'}</p>
+    <div className="profile-page">
+      <header className="profile-heading">
+        <span className="profile-avatar" aria-hidden="true">
+          {(profile?.display_name || profile?.username || 'Y').charAt(0).toUpperCase()}
+        </span>
+        <div>
+          <span className="profile-eyebrow">YOUR ACCOUNT</span>
+          <h1>Your profile</h1>
+          <p>Manage your account and your place in the community.</p>
         </div>
-      </section>
+      </header>
 
-      <section className="card">
-        <h2 className="section-title">Supporter application</h2>
-        <p className="small-text">If you want to support others, tell us what experience or qualities you bring.</p>
-
-        <form className="card" onSubmit={submitApplication} style={{ marginTop: 24 }}>
-          <div className="form-field">
-            <label htmlFor="story">Why would you like to become a supporter?</label>
-            <textarea id="story" value={story} onChange={(e) => setStory(e.target.value)} rows={6} required />
+      <div className="profile-layout">
+        <section className="profile-account-card">
+          <div className="profile-section-heading">
+            <span className="profile-section-icon" aria-hidden="true">○</span>
+            <div><h2>Account details</h2><p>Your information at a glance.</p></div>
           </div>
-          <button type="submit" className="primary">Submit application</button>
-          {status && <div className="alert" style={{ marginTop: 16 }}>{status}</div>}
-        </form>
+          <dl className="profile-details">
+            <div><dt>Email address</dt><dd>{profile?.email ?? 'Not available'}</dd></div>
+            <div><dt>Community role</dt><dd><span className={`profile-role-pill is-${currentRole}`}>{roleLabel}</span></dd></div>
+            {profile?.display_name && <div><dt>Display name</dt><dd>{profile.display_name}</dd></div>}
+          </dl>
+          <div className="profile-account-note"><span aria-hidden="true">♡</span> Your account details are kept private.</div>
+        </section>
 
-        {application && (
-          <div className="banner" style={{ marginTop: 24 }}>
-            <p style={{ margin: 0 }}><strong>Last application</strong></p>
-            <p className="small-text" style={{ margin: '10px 0 0' }}>Status: {application.status}</p>
-            <p className="small-text" style={{ margin: '8px 0 0' }}>{application.story}</p>
+        <section className="profile-application-card">
+          <div className="profile-section-heading">
+            <span className="profile-section-icon profile-application-icon" aria-hidden="true">✧</span>
+            <div><h2>{currentRole === 'supporter' ? 'You’re a supporter' : 'Become a supporter'}</h2><p>Supporter applications are reviewed by the community team.</p></div>
           </div>
-        )}
-      </section>
+          {currentRole === 'therapist' ? (
+            <p className="profile-application-intro">Your therapist status was assigned by the Boitekanelo Space team after direct outreach. Your role badge appears on community contributions.</p>
+          ) : currentRole === 'supporter' ? (
+            <p className="profile-application-intro">Thank you for supporting the community. Your role badge appears when you join conversations.</p>
+          ) : (
+            <p className="profile-application-intro">If you’d like to support others, share a little about the experience or qualities you bring. Therapist roles are assigned only by our team after direct recruitment.</p>
+          )}
+
+          {currentRole === 'user' && <form className="profile-application-form" onSubmit={submitApplication}>
+            <div className="form-field">
+              <label htmlFor="story">Why would you like to become a supporter?</label>
+              <textarea id="story" value={story} onChange={(e) => setStory(e.target.value)} rows={6} required placeholder="Share the qualities, experience, or care you’d bring…" />
+            </div>
+            <button type="submit" className="profile-submit-button">Submit application <span aria-hidden="true">→</span></button>
+            {status && <div className="profile-status" role="status">{status}</div>}
+          </form>}
+
+          {application && (
+            <div className="profile-last-application">
+              <div className="profile-last-application-heading">
+                <strong>Latest application</strong>
+                <span className={`profile-application-status is-${application.status}`}>{application.status}</span>
+              </div>
+              <p>{application.story}</p>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   )
 }
