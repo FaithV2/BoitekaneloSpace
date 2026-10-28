@@ -59,7 +59,24 @@ export default function AuthPage() {
 
   return (
     <section className="auth-page">
-      <div className="auth-card">
+      <div className="auth-layout">
+        <aside className="auth-showcase">
+          <div className="auth-showcase-copy">
+            <span className="auth-showcase-eyebrow">WELCOME TO BOITEKANELO SPACE</span>
+            <h2>A little more room to breathe.</h2>
+            <p>A calm place to check in with yourself, share when you’re ready, and find support in a caring community.</p>
+          </div>
+          <div className="auth-square-art" aria-hidden="true">
+            <span className="auth-square auth-square-large" />
+            <span className="auth-square auth-square-tall" />
+            <span className="auth-square auth-square-small" />
+            <span className="auth-square auth-square-wide" />
+            <span className="auth-square auth-square-soft" />
+          </div>
+          <p className="auth-showcase-note"><span aria-hidden="true">♡</span> Your wellbeing matters. Start wherever you are.</p>
+        </aside>
+
+        <div className="auth-card">
         <h1>{mode === 'forgot' ? 'Reset your password' : mode === 'login' ? 'Sign in' : 'Create your account'}</h1>
         <p className="auth-intro">Boitekanelo Space</p>
 
@@ -106,6 +123,7 @@ export default function AuthPage() {
         )}
 
         {status && <div className="auth-status" role="status">{status}</div>}
+        </div>
       </div>
     </section>
   )
