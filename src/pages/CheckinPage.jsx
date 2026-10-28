@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
 import { scanForHarmfulContent } from '../lib/safetyUtils'
+import Icon from '../components/Icon'
 
 const defaultPrompt = 'How are you feeling today?'
 
@@ -93,7 +94,7 @@ export default function CheckinPage() {
   return (
     <div className="checkin-page">
       <header className="checkin-heading">
-        <span className="checkin-heading-icon" aria-hidden="true">✧</span>
+        <span className="checkin-heading-icon" aria-hidden="true"><Icon name="checkin" size={22} /></span>
         <span className="checkin-eyebrow">A GENTLE PAUSE</span>
         <h1>Daily check-in</h1>
         <p>Share what’s on your mind and receive calm, non-diagnostic reflection.</p>
@@ -125,7 +126,7 @@ export default function CheckinPage() {
             {warning && <div className="checkin-alert checkin-alert-warning" role="status">{warning}</div>}
             {response && (
               <div className="checkin-response">
-                <span className="checkin-response-icon" aria-hidden="true">♡</span>
+                <span className="checkin-response-icon" aria-hidden="true"><Icon name="heart" /></span>
                 <div>
                   <strong>A supportive reflection</strong>
                   <p>{response}</p>
@@ -137,7 +138,7 @@ export default function CheckinPage() {
 
         <aside className="checkin-aside">
           <section className="checkin-info-card">
-            <span className="checkin-info-icon" aria-hidden="true">☼</span>
+            <span className="checkin-info-icon" aria-hidden="true"><Icon name="shield" /></span>
             <span className="checkin-eyebrow">A LITTLE ABOUT THIS SPACE</span>
             <h2>How check-ins work</h2>
             <p>This tool is here to listen, reflect, and offer caring suggestions. It’s not a diagnosis or a substitute for professional care.</p>
@@ -147,7 +148,7 @@ export default function CheckinPage() {
               <li><span aria-hidden="true">✓</span> Find grounding ideas</li>
             </ul>
           </section>
-          <p className="checkin-privacy-note"><span aria-hidden="true">♡</span> Your check-in is personal and shared only with this service.</p>
+          <p className="checkin-privacy-note"><span aria-hidden="true"><Icon name="lock" size={14} /></span> Your check-in is personal and shared only with this service.</p>
         </aside>
       </div>
     </div>

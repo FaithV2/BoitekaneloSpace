@@ -12,6 +12,7 @@ import AdminPage from './pages/AdminPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import NotificationCenter from './components/NotificationCenter'
 import WelcomeExperience from './components/WelcomeExperience'
+import Icon from './components/Icon'
 import RoleDashboardPage from './pages/RoleDashboardPage'
 
 function AppShell() {
@@ -19,6 +20,7 @@ function AppShell() {
   const isAuthenticated = Boolean(session?.user)
   const userId = session?.user?.id
   const [welcomeUserId, setWelcomeUserId] = useState(null)
+  const [navOpen, setNavOpen] = useState(false)
 
   useEffect(() => {
     if (!userId || loading || refreshingProfile) {
@@ -46,12 +48,23 @@ function AppShell() {
     setWelcomeUserId(null)
   }, [welcomeUserId])
 
+  useEffect(() => {
+    if (!navOpen) return undefined
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setNavOpen(false)
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [navOpen])
+
   return (
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header-inner">
           <div className="brand">
-            <span className="brand-mark" aria-hidden="true">B</span>
+            <span className="brand-mark" aria-hidden="true">b.</span>
             <div>
               <div className="brand-name">Boitekanelo Space</div>
               <div className="brand-tagline">A calm community for wellness sharing</div>
@@ -59,46 +72,58 @@ function AppShell() {
           </div>
 
           {isAuthenticated && (
-            <div className="nav-actions">
-              <nav className="nav-links" aria-label="Main navigation">
+            <>
+            <button
+              type="button"
+              className="mobile-menu-toggle"
+              aria-label={navOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={navOpen}
+              aria-controls="primary-navigation"
+              onClick={() => setNavOpen((isOpen) => !isOpen)}
+            >
+              <Icon name={navOpen ? 'close' : 'menu'} size={21} />
+            </button>
+            <div className={`nav-actions${navOpen ? ' is-open' : ''}`}>
+              <nav id="primary-navigation" className="nav-links" aria-label="Main navigation">
                 {profile?.role !== 'supporter' && profile?.role !== 'therapist' && (
-                  <NavLink to="/" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                    Home
+                  <NavLink to="/" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                    <Icon name="home" size={16} /><span>Home</span>
                   </NavLink>
                 )}
-                <NavLink to="/feed" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                  Feed
+                <NavLink to="/feed" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                  <Icon name="feed" size={16} /><span>Feed</span>
                 </NavLink>
                 {profile?.role === 'supporter' && (
-                  <NavLink to="/supporter" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                    Support
+                  <NavLink to="/supporter" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                    <Icon name="heart" size={16} /><span>Support</span>
                   </NavLink>
                 )}
                 {profile?.role === 'therapist' && (
-                  <NavLink to="/therapist" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                    Therapist space
+                  <NavLink to="/therapist" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                    <Icon name="therapist" size={16} /><span>Therapist space</span>
                   </NavLink>
                 )}
-                <NavLink to="/mood" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                  Mood
+                <NavLink to="/mood" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                  <Icon name="mood" size={16} /><span>Mood</span>
                 </NavLink>
-                <NavLink to="/checkin" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                  Check-in
+                <NavLink to="/checkin" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                  <Icon name="checkin" size={16} /><span>Check-in</span>
                 </NavLink>
-                <NavLink to="/profile" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                  Profile
+                <NavLink to="/profile" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                  <Icon name="profile" size={16} /><span>Profile</span>
                 </NavLink>
                 {profile?.role === 'admin' && (
-                  <NavLink to="/admin" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-                    Admin
+                  <NavLink to="/admin" onClick={() => setNavOpen(false)} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                    <Icon name="admin" size={16} /><span>Admin</span>
                   </NavLink>
                 )}
               </nav>
               <NotificationCenter userId={session.user.id} />
-              <button className="secondary sign-out-button" onClick={signOut}>
+              <button className="secondary sign-out-button" onClick={() => { setNavOpen(false); signOut() }}>
                 Sign out
               </button>
             </div>
+            </>
           )}
         </div>
       </header>

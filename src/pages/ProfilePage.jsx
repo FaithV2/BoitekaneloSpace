@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
+import Icon from '../components/Icon'
 
 export default function ProfilePage() {
   const { profile } = useAuth()
@@ -66,7 +67,7 @@ export default function ProfilePage() {
       <div className="profile-layout">
         <section className="profile-account-card">
           <div className="profile-section-heading">
-            <span className="profile-section-icon" aria-hidden="true">○</span>
+            <span className="profile-section-icon" aria-hidden="true"><Icon name="profile" /></span>
             <div><h2>Account details</h2><p>Your information at a glance.</p></div>
           </div>
           <dl className="profile-details">
@@ -74,12 +75,12 @@ export default function ProfilePage() {
             <div><dt>Community role</dt><dd><span className={`profile-role-pill is-${currentRole}`}>{roleLabel}</span></dd></div>
             {profile?.display_name && <div><dt>Display name</dt><dd>{profile.display_name}</dd></div>}
           </dl>
-          <div className="profile-account-note"><span aria-hidden="true">♡</span> Your account details are kept private.</div>
+          <div className="profile-account-note"><span aria-hidden="true"><Icon name="lock" size={14} /></span> Your account details are kept private.</div>
         </section>
 
         <section className="profile-application-card">
           <div className="profile-section-heading">
-            <span className="profile-section-icon profile-application-icon" aria-hidden="true">✧</span>
+            <span className="profile-section-icon profile-application-icon" aria-hidden="true"><Icon name="heart" /></span>
             <div><h2>{currentRole === 'supporter' ? 'You’re a supporter' : 'Become a supporter'}</h2><p>Supporter applications are reviewed by the community team.</p></div>
           </div>
           {currentRole === 'therapist' ? (

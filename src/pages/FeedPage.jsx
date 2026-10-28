@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
+import Icon from '../components/Icon'
 
 function formatRelativeTime(value) {
   const date = new Date(value)
@@ -300,9 +301,11 @@ export default function FeedPage() {
     <div className="feed-page">
       <header className="feed-heading">
         <div>
+          <span className="feed-eyebrow">COMMUNITY · OPEN CONVERSATION</span>
           <h1>Community feed</h1>
           <p>Posts and conversations from the community.</p>
         </div>
+        <span className="feed-heading-mark" aria-hidden="true"><Icon name="feed" size={28} strokeWidth={1.5} /></span>
       </header>
 
       <div className="feed-layout">
@@ -310,6 +313,7 @@ export default function FeedPage() {
           <section className="feed-composer" aria-labelledby="composer-title">
             <div className="feed-section-heading">
               <div>
+                <span className="feed-composer-kicker">YOUR VOICE MATTERS</span>
                 <h2 id="composer-title">Write a post</h2>
                 <p>Share with the community.</p>
               </div>
@@ -480,12 +484,12 @@ export default function FeedPage() {
                           disabled={hasSupported || reactingTo === post.id}
                           onClick={() => sendSupport(post.id)}
                         >
-                          <span aria-hidden="true">♡</span>
+                          <Icon name="heart" size={16} />
                           <span>{reactingTo === post.id ? 'Sending…' : hasSupported ? 'Support sent' : 'Send support'}</span>
                           {supportCount > 0 && <span className="feed-action-count">{supportCount}</span>}
                         </button>
                         <Link className="feed-action-button feed-comment-button" to={`/post/${post.id}`}>
-                          <span aria-hidden="true">☏</span>
+                          <Icon name="message" size={16} />
                           <span>Comment</span>
                           <span className="feed-action-count">{post.comments?.length ?? 0}</span>
                         </Link>

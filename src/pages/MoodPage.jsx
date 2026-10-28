@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../hooks/useAuth'
+import Icon from '../components/Icon'
 
 const moods = [
-  { value: 'happy', label: 'Happy', emoji: '😊', color: '#e5a331', tint: '#fff7df' },
-  { value: 'calm', label: 'Calm', emoji: '😌', color: '#489b83', tint: '#e9f7f1' },
-  { value: 'anxious', label: 'Anxious', emoji: '😟', color: '#8a79c2', tint: '#f2effb' },
-  { value: 'sad', label: 'Sad', emoji: '😔', color: '#6488bd', tint: '#edf3fc' },
-  { value: 'stressed', label: 'Stressed', emoji: '😣', color: '#d47b68', tint: '#fff0eb' }
+  { value: 'happy', label: 'Happy', icon: 'happy', color: '#8b5cf6', tint: '#f2edff' },
+  { value: 'calm', label: 'Calm', icon: 'calm', color: '#6f67d8', tint: '#efedff' },
+  { value: 'anxious', label: 'Anxious', icon: 'anxious', color: '#b06cd4', tint: '#f7effc' },
+  { value: 'sad', label: 'Sad', icon: 'sad', color: '#5877bd', tint: '#eef2fb' },
+  { value: 'stressed', label: 'Stressed', icon: 'stressed', color: '#bf6684', tint: '#f9eef2' }
 ]
 
 const moodByValue = Object.fromEntries(moods.map((mood) => [mood.value, mood]))
@@ -120,13 +121,9 @@ export default function MoodPage() {
     <div className="mood-page">
       <header className="mood-heading">
         <div className="mood-heading-copy">
-          <span className="mood-eyebrow"><span aria-hidden="true">✦</span> A moment for you</span>
+          <span className="mood-eyebrow"><Icon name="mood" size={15} /> A moment for you</span>
           <h1>How are you feeling today?</h1>
           <p>There’s no right or wrong way to feel. Take a breath and check in with yourself.</p>
-        </div>
-        <div className="mood-heading-art" aria-hidden="true">
-          <span>☁️</span>
-          <span>🌿</span>
         </div>
       </header>
 
@@ -137,7 +134,7 @@ export default function MoodPage() {
               <span className="mood-step">YOUR DAILY CHECK-IN</span>
               <h2 id="mood-entry-title">Name what you’re feeling</h2>
             </div>
-            <span className="mood-heading-icon" aria-hidden="true">♡</span>
+            <span className="mood-heading-icon" aria-hidden="true"><Icon name="mood" /></span>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -156,7 +153,7 @@ export default function MoodPage() {
                     }}
                     style={{ '--mood-color': option.color, '--mood-tint': option.tint }}
                   >
-                    <span className="mood-choice-emoji" aria-hidden="true">{option.emoji}</span>
+                    <span className="mood-choice-emoji" aria-hidden="true"><Icon name={option.icon} size={21} /></span>
                     <span>{option.label}</span>
                     {mood === option.value && <span className="mood-choice-check" aria-hidden="true">✓</span>}
                   </button>
@@ -207,7 +204,7 @@ export default function MoodPage() {
               <span className="mood-step">YOUR PERSONAL JOURNEY</span>
               <h2 id="mood-history-title">Mood history</h2>
             </div>
-            <span className="mood-heading-icon" aria-hidden="true">↗</span>
+            <span className="mood-heading-icon" aria-hidden="true"><Icon name="mood" /></span>
           </div>
 
           {historyStatus === 'loading' ? (
@@ -217,13 +214,13 @@ export default function MoodPage() {
             </div>
           ) : historyStatus === 'error' ? (
             <div className="mood-history-message mood-history-error" role="alert">
-              <span aria-hidden="true">☁</span>
+              <span aria-hidden="true"><Icon name="mood" /></span>
               <p>{historyError}</p>
               <button type="button" className="mood-retry-button" onClick={loadMoodLogs}>Try again</button>
             </div>
           ) : logs.length === 0 ? (
             <div className="mood-history-message mood-history-empty">
-              <span className="mood-empty-emoji" aria-hidden="true">🌱</span>
+              <span className="mood-empty-emoji" aria-hidden="true"><Icon name="mood" size={24} /></span>
               <h3>Your story starts here</h3>
               <p>When you save a check-in, it’ll appear here. Over time, you’ll have a gentle view of your moods.</p>
             </div>
@@ -252,7 +249,7 @@ export default function MoodPage() {
                     </div>
                     {moods.map((option) => (
                       <div className="mood-chart-row" key={option.value} aria-hidden="true">
-                        <span className="mood-chart-label">{option.emoji} {option.label}</span>
+                        <span className="mood-chart-label"><Icon name={option.icon} size={14} /> {option.label}</span>
                         {recentEntries.map((entry) => (
                           <span className="mood-chart-cell" key={`${option.value}-${entry.id}`}>
                             {entry.mood === option.value && (
@@ -283,11 +280,11 @@ export default function MoodPage() {
                         className="mood-history-emoji"
                         aria-hidden="true"
                         style={{
-                          '--mood-color': entryMood?.color ?? '#6488bd',
-                          '--mood-tint': entryMood?.tint ?? '#edf3fc'
+                          '--mood-color': entryMood?.color ?? '#5877bd',
+                          '--mood-tint': entryMood?.tint ?? '#eef2fb'
                         }}
                       >
-                        {entryMood?.emoji ?? '💭'}
+                        <Icon name={entryMood?.icon ?? 'mood'} size={18} />
                       </span>
                       <div className="mood-history-entry-content">
                         <div className="mood-history-entry-topline">
@@ -309,7 +306,7 @@ export default function MoodPage() {
         </section>
       </div>
 
-      <p className="mood-page-note"><span aria-hidden="true">♡</span> Your mood entries are private to you.</p>
+      <p className="mood-page-note"><span aria-hidden="true"><Icon name="lock" size={14} /></span> Your mood entries are private to you.</p>
     </div>
   )
 }
